@@ -3,7 +3,7 @@
 
 import argparse
 from Registry import Registry
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout, redirect_stderr	
 
 # Written By NxtDaemon Any Issues or Additions you would like please contact me here https://nxtdaemon.xyz/contact
 # |  \  |  \          |  \   |       \                                                  
@@ -66,10 +66,10 @@ class Notify():
 Parser = argparse.ArgumentParser(description=f"{Color.InfoColor}Use the Following Arguments{Color.RESET}")
 Parser.add_argument("file",help="Supply the hive file",type=str,action="store")
 Parser.add_argument("--persist_S","-ps",help="Use this to scan for persistence",action="store_true",default=False)
-Parser.add_argument("--mru","-M",help="Use to scan the MRU List of the Hive or Reg file",action="store_true",default=False)
+Parser.add_argument("--mru","-M",help="Use to scan the MRU List",action="store_true",default=False)
 Parser.add_argument("--silent","-s",help="Enter file to output to",default=False,action="store_true")
 Parser.add_argument("--verbose","-v",help="Use for debugging",action="store_true",default=0)
-Parser.add_argument("-F",help="Force the use of a hivetype X when inputted",action="store",default="",type=str)
+Parser.add_argument("--force","-F",help="Force the use of a hivetype X when inputted",action="store",metavar="",default="",type=str)
 
 Args = Parser.parse_args()
 
@@ -81,7 +81,7 @@ class RegHandler():
 		self.File = Args.file 
 		self.Silent = Args.silent
 		self.Verbose = Args.verbose
-		self.ForceHive = Args.F.upper()
+		self.ForceHive = Args.force.upper()
 
 		# Setting Variables
 		self.tab = "    "
@@ -141,6 +141,8 @@ class RegHandler():
 		if not self.ForceHive:
 			self.HiveID()
 		else:
+			if self.ForceHive not in self.Keys:
+				Notify.Error("Key Not of Valid Type") ; return()
 			self.HiveType = self.ForceHive
 			Notify.Warning(f"Forcing HiveType : {self.HiveType}")
 
@@ -247,34 +249,37 @@ class RegHandler():
 
 	def OutputManager(self):
 		if self.Silent:
-			with open(f"{self.File}.{self.FileType}scan","w") as f:
+			with open(f"{self.File}-{self.HiveType}.scan","w") as f:
 				with redirect_stdout(f):
-					self.OutputResults()
+					with redirect_stderr(f):
+						self.OutputResults()
 		else:
 			self.OutputResults()
 
 	def OutputResults(self):
 		for Value in ["RegScan","MRUScan"]:
-			for CategoryValue in self.Results:
-
-
-
-				
-				# try:
-				# 	if self.Results[Name]:
-				# 		Notify.Success(f"{Name} Yielded {len(self.Results[Name])} results")
-				# 		tmp = self.Results[Name]
-				# 		for _ in tmp:
-				# 			print(f"{self.tab}{_}")
-				# 		print("")
-				# 	else:
-				# 		continue
-				# except KeyError:
-				# 	pass
- 
-
-#! Add Some Checking for Correct Args E.g Filetype 
-
+			CategoryOutput = self.Results.get(Value)
+			if Value == "RegScan":
+				Locations = self.PersistenceLocations
+			if Value == "MRUScan":
+				Locations = self.MRU_Locations
+			if Locations == None: continue
+			for Name in Locations:
+				try:
+					if CategoryOutput == None: continue
+					if CategoryOutput[Name]:
+						Notify.Success(f"{Name} Yielded {len(CategoryOutput[Name])} results")
+						tmp = CategoryOutput[Name]
+						for _ in tmp:
+							print(f"{self.tab}{_}")
+						print("")
+					else:
+						continue
+				except KeyError:
+					pass
+	 
+if (not Args.mru and not Args.persist_S):
+	Notify.Error("You must choose a scan type")
 R = RegHandler(Args)
 R.Initiate()
 
