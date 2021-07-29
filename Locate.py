@@ -1,8 +1,10 @@
+#!/usr/bin/python
+# coding: utf-8
+
 import argparse
 from Registry import Registry
 
 # Written By NxtDaemon Any Issues or Additions you would like please contact me here https://nxtdaemon.xyz/contact
-#  __    __            __     _______                                                   
 # |  \  |  \          |  \   |       \                                                  
 # | ▓▓\ | ▓▓__    __ _| ▓▓_  | ▓▓▓▓▓▓▓\ ______   ______  ______ ____   ______  _______  
 # | ▓▓▓\| ▓▓  \  /  \   ▓▓ \ | ▓▓  | ▓▓|      \ /      \|      \    \ /      \|       \ 
@@ -11,6 +13,7 @@ from Registry import Registry
 # | ▓▓ \▓▓▓▓/  ▓▓▓▓\  | ▓▓|  \ ▓▓__/ ▓▓  ▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓ ▓▓ | ▓▓ | ▓▓ ▓▓__/ ▓▓ ▓▓  | ▓▓
 # | ▓▓  \▓▓▓  ▓▓ \▓▓\  \▓▓  ▓▓ ▓▓    ▓▓\▓▓    ▓▓\▓▓     \ ▓▓ | ▓▓ | ▓▓\▓▓    ▓▓ ▓▓  | ▓▓ 
 #  \▓▓   \▓▓\▓▓   \▓▓   \▓▓▓▓ \▓▓▓▓▓▓▓  \▓▓▓▓▓▓▓ \▓▓▓▓▓▓▓\▓▓  \▓▓  \▓▓ \▓▓▓▓▓▓ \▓▓   \▓▓
+#  __    __            __     _______                                                   
 
 class Color:
     'Class for Colors to be used in Execution'
@@ -56,18 +59,19 @@ Parser.add_argument("--file","-f",help="Supply the hive file",type=str,action="s
 Parser.add_argument("--persist_S","-ps",help="Use this to scan for persistence",action="store_true",default=False)
 Parser.add_argument("--filetype","-ft",help="Enter either 'hive' or 'reg' based of filetype",type=str,action="store")
 Parser.add_argument("--output","-o",help="Enter file to output to",type=str,default="",action="store")
+Parser.add_argument("--verbose","-v",help="Use for debugging",action="store_true",default=0)
 Args = Parser.parse_args()
 
 class RegHandler():
-	def __init__(self,Scan,File,FileType,Output):
+	def __init__(self,Scan,File,FileType,Output,Verbose):
 		self.Scan = Scan 
 		self.File = File
 		self.FileType = FileType
 		self.Results = {}
 		self.OutputFile = Output
 		self.tab = "    "
+		self.Verbose = Verbose
 		self.PersistenceLocations = {"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\BootExecute",
-									"System\\CurrentControlSet\\Services",
 									"System\\CurrentControlSet\\Services",
 									"Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce",
 									"Software\\Microsoft\\Windows\\CurrentVersion\\RunServices",
@@ -82,10 +86,6 @@ class RegHandler():
 									"Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
 									"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\SharedTaskScheduler",
 									"Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\AppInit_DLLs",
-									"Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce",
-									"Software\\Microsoft\\Windows\\CurrentVersion\\RunServices",
-									"Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell",
-									"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce", 
 									"Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run",
 									"Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\load"}
 
@@ -110,7 +110,8 @@ class RegHandler():
 
 					self.Results.update({ Location : KeyResults})
 				except Registry.RegistryKeyNotFoundException:
-					Notify.Error(f"Key {Location} not found")
+					if self.Verbose:
+						Notify.Error(f"Key {Location} not found")
 				except Exception as Exc:
 					Notify.Error(f"Encountered '{Exc}'")
 			self.OutputResults()
@@ -140,7 +141,7 @@ class RegHandler():
 
 #! Add Some Checking for Correct Args E.g Filetype 
 
-R = RegHandler(Args.persist_S,Args.file,Args.filetype,Args.output)
+R = RegHandler(Args.persist_S,Args.file,Args.filetype,Args.output,Args.verbose)
 R.scan()
 
 
