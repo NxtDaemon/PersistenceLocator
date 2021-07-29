@@ -58,15 +58,18 @@ class Notify():
 		'Red Output Message'
 		print(f"{Color.ErrorColor}[-] - {Message}{Color.RESET}")
 
+	def Warning(Message):
+		'Red Output Message'	
+		print(f"{Color.ErrorColor}[!!] - {Message}{Color.RESET}")
+
 # Argparse
 Parser = argparse.ArgumentParser(description=f"{Color.InfoColor}Use the Following Arguments{Color.RESET}")
 Parser.add_argument("file",help="Supply the hive file",type=str,action="store")
 Parser.add_argument("--persist_S","-ps",help="Use this to scan for persistence",action="store_true",default=False)
 Parser.add_argument("--mru","-M",help="Use to scan the MRU List of the Hive or Reg file",action="store_true",default=False)
-
 Parser.add_argument("--silent","-s",help="Enter file to output to",default=False,action="store_true")
 Parser.add_argument("--verbose","-v",help="Use for debugging",action="store_true",default=0)
-
+Parser.add_argument("-F",help="Force the use of a hivetype X when inputted",action="store",default="",type=str)
 
 Args = Parser.parse_args()
 
@@ -78,10 +81,32 @@ class RegHandler():
 		self.File = Args.file 
 		self.Silent = Args.silent
 		self.Verbose = Args.verbose
+		self.ForceHive = Args.F.upper()
 
 		# Setting Variables
 		self.tab = "    "
 		self.Results = {}
+
+		self.Keys = ["HKU","HKLM","HKCU","HKCR"] # Ignoring HKCC 
+		self.KeyLikelyhood = {"HKU":0, "HKLM":0, "HKCU":0, "HKCR":0}
+		self.HiveType = ""
+		self.reg = Registry.Registry(self.File)
+
+		#* Running Extra Init Functions
+		self.Persistence()
+		self.MostRecentlyUsed()
+
+	def MostRecentlyUsed(self):
+		self.MRU_Locations = ["Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\OpenSaveMRU",
+					"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisitedMRU",
+					"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RecentDocs",
+					"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU",
+					"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist",
+					"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management"]
+					
+
+
+	def Persistence(self):
 		self.PersistenceLocations = None
 
 		self.HKCU_Persistence = ["Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce" 
@@ -109,14 +134,16 @@ class RegHandler():
 								"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\SharedTaskScheduler",
 								"Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\AppInit_DLLs",]
 
-		self.Keys = ["HKU","HKLM","HKCU","HKCR"] # Ignoring HKCC 
-		self.KeyLikelyhood = {"HKU":0, "HKLM":0, "HKCU":0, "HKCR":0}
-		self.HiveType = ""
-		self.reg = Registry.Registry(self.File)
+
 
 	def Initiate(self):
 		'Run to Initate Scanning'
-		self.HiveID()
+		if not self.ForceHive:
+			self.HiveID()
+		else:
+			self.HiveType = self.ForceHive
+			Notify.Warning(f"Forcing HiveType : {self.HiveType}")
+
 		self.ScanManager()
 		self.OutputManager()
 
@@ -124,35 +151,62 @@ class RegHandler():
 		'Manages What Scans are run' 
 		if self.PerScan: self.RegScan()
 
-		elif self.MRU_Scan: self.MRUScan()
+		if self.MRU_Scan: self.MRUScan()
 
 
-	def MRUScan():
+	def MRUScan(self):
+		'Scans MRU Hives'
+		print("\n-- Scanning MRU Hives --\n")
+
+		reg = self.reg 
+		Scan_Results = {}
+		if self.HiveType != "HKCU":
+			Notify.Failure("Only HKCU Hives Can be Scanned for MRU")
+			return()
+		else:
+			for Location in self.MRU_Locations:
+				try: 
+					key = reg.open(Location)
+					KeyResults = []
+
+					for value in [v for v in key.values() if v.value_type() == Registry.RegSZ or v.value_type() == Registry.RegExpandSZ]:
+						KeyResults.append(f" {value.name()} -> '{value.value()}'")
+
+					Scan_Results.update({Location : KeyResults})
+				except Registry.RegistryKeyNotFoundException:
+					if self.Verbose:
+						Notify.Failure(f"Key {Location} not found")
+				except Exception as Exc:
+					Notify.Error(f"Encountered '{Exc}'")
+
+		self.Results.update({"MRUScan" : Scan_Results})
 
 	def RegScan(self):
 		'Scans Registry Files'
 		print("\n-- Scanning Registry --\n")
 		
 		reg = self.reg
-
+		Scan_Results = {}
 		if self.HiveType == "HKCU" : self.PersistenceLocations = self.HKCU_Persistence
 		elif self.HiveType == "HKLM" : self.PersistenceLocations = self.HKLM_Persistence
 
-		for Location in self.PersistenceLocations:
-			try:
-				key = reg.open(Location)
-				KeyResults = []
+		if self.PersistenceLocations:
+			for Location in self.PersistenceLocations:
+				try:
+					key = reg.open(Location)
+					KeyResults = []
 
-				for value in [v for v in key.values() if v.value_type() == Registry.RegSZ or v.value_type() == Registry.RegExpandSZ]:
-					KeyResults.append(f" {value.name()} -> '{value.value()}'")
+					for value in [v for v in key.values() if v.value_type() == Registry.RegSZ or v.value_type() == Registry.RegExpandSZ]:
+						KeyResults.append(f" {value.name()} -> '{value.value()}'")
 
-				self.Results.update({ Location : KeyResults})
-			except Registry.RegistryKeyNotFoundException:
-				if self.Verbose:
-					Notify.Failure(f"Key {Location} not found")
-			except Exception as Exc:
-				Notify.Error(f"Encountered '{Exc}'")
-			
+					Scan_Results.update({ Location : KeyResults})
+				except Registry.RegistryKeyNotFoundException:
+					if self.Verbose:
+						Notify.Failure(f"Key {Location} not found")
+				except Exception as Exc:
+					Notify.Error(f"Encountered '{Exc}'")
+			self.Results.update({"RegScan" : Scan_Results})
+
 	def HiveID(self):
 		print("\n-- Detecting HiveType --\n")
 		# Define Vars 
@@ -200,18 +254,23 @@ class RegHandler():
 			self.OutputResults()
 
 	def OutputResults(self):
-		for Name in self.PersistenceLocations:
-			try:
-				if self.Results[Name]:
-					Notify.Success(f"{Name} Yielded {len(self.Results[Name])} results")
-					tmp = self.Results[Name]
-					for _ in tmp:
-						print(f"{self.tab}{_}")
-					print("")
-				else:
-					continue
-			except KeyError:
-				pass
+		for Value in ["RegScan","MRUScan"]:
+			for CategoryValue in self.Results:
+
+
+
+				
+				# try:
+				# 	if self.Results[Name]:
+				# 		Notify.Success(f"{Name} Yielded {len(self.Results[Name])} results")
+				# 		tmp = self.Results[Name]
+				# 		for _ in tmp:
+				# 			print(f"{self.tab}{_}")
+				# 		print("")
+				# 	else:
+				# 		continue
+				# except KeyError:
+				# 	pass
  
 
 #! Add Some Checking for Correct Args E.g Filetype 
