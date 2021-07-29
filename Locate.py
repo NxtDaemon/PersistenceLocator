@@ -3,6 +3,7 @@
 
 import argparse
 from Registry import Registry
+from contextlib import redirect_stdout
 
 # Written By NxtDaemon Any Issues or Additions you would like please contact me here https://nxtdaemon.xyz/contact
 # |  \  |  \          |  \   |       \                                                  
@@ -58,7 +59,7 @@ Parser = argparse.ArgumentParser()
 Parser.add_argument("--file","-f",help="Supply the hive file",type=str,action="store")
 Parser.add_argument("--persist_S","-ps",help="Use this to scan for persistence",action="store_true",default=False)
 Parser.add_argument("--filetype","-ft",help="Enter either 'hive' or 'reg' based of filetype",type=str,action="store")
-Parser.add_argument("--output","-o",help="Enter file to output to",type=str,default="",action="store")
+Parser.add_argument("--output","-o",help="Enter file to output to",default=False,action="store_true")
 Parser.add_argument("--verbose","-v",help="Use for debugging",action="store_true",default=0)
 Args = Parser.parse_args()
 
@@ -68,7 +69,7 @@ class RegHandler():
 		self.File = File
 		self.FileType = FileType
 		self.Results = {}
-		self.OutputFile = Output
+		self.Output = Output
 		self.tab = "    "
 		self.Verbose = Verbose
 		self.PersistenceLocations = {"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\BootExecute",
@@ -114,7 +115,7 @@ class RegHandler():
 						Notify.Error(f"Key {Location} not found")
 				except Exception as Exc:
 					Notify.Error(f"Encountered '{Exc}'")
-			self.OutputResults()
+			self.OutputManager()
 
 		else:
 			return()
@@ -122,6 +123,14 @@ class RegHandler():
 	def HiveScan(self):
 		print("I Do Nothing")
 
+
+	def OutputManager(self):
+		if self.Output:
+			with open(f"{self.File}.{self.FileType}scan","w") as f:
+				with redirect_stdout(f):
+					self.OutputResults()
+		else:
+			self.OutputResults()
 	def OutputResults(self):
 		for Name in self.PersistenceLocations:
 			try:
