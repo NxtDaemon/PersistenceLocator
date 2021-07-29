@@ -7,3 +7,6 @@ it will assume the hive and run persistence enumeration against it, additionally
 
 ## Python Library 
 https://github.com/williballenthin/python-registry
+
+## Usage 
+[Check This Out Here](https://nxtdaemon.xyz/%cf%86-persistencelocator/)
