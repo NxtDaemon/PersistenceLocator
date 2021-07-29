@@ -84,30 +84,30 @@ class RegHandler():
 		self.Results = {}
 		self.PersistenceLocations = None
 
-		self.HKCU_Persistence = ["HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce" 
-								"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServices", 
-								"HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell", 
-								"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", 
-								"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce", 
-								"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run", 
-								"HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\load"]
+		self.HKCU_Persistence = ["Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce" 
+								"Software\\Microsoft\\Windows\\CurrentVersion\\RunServices", 
+								"Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell", 
+								"Software\\Microsoft\\Windows\\CurrentVersion\\Run", 
+								"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce", 
+								"Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run", 
+								"Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\load"]
 
-		self.HKLM_Persistence = ["HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\BootExecute", 
-							 	"HKLM\\System\\CurrentControlSet\\Services", 
-								"HKLM\\System\\CurrentControlSet\\Services", 
-								"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce",
-								"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServices",
-								"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Notify", 
-								"HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Userinit",
-								"HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell",
-								"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ShellServiceObjectDelayLoad", 
-								"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
-								"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx", 
-								"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-								"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run", 
-								"HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
-								"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\SharedTaskScheduler",
-								"HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\AppInit_DLLs",]
+		self.HKLM_Persistence = ["SYSTEM\\CurrentControlSet\\Control\\Session Manager\\BootExecute", 
+							 	"System\\CurrentControlSet\\Services", 
+								"System\\CurrentControlSet\\Services", 
+								"Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce",
+								"Software\\Microsoft\\Windows\\CurrentVersion\\RunServices",
+								"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Notify", 
+								"Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Userinit",
+								"Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell",
+								"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ShellServiceObjectDelayLoad", 
+								"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+								"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx", 
+								"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+								"Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run", 
+								"Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+								"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\SharedTaskScheduler",
+								"Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\AppInit_DLLs",]
 
 		self.Keys = ["HKU","HKLM","HKCU","HKCR"] # Ignoring HKCC 
 		self.KeyLikelyhood = {"HKU":0, "HKLM":0, "HKCU":0, "HKCR":0}
@@ -124,8 +124,10 @@ class RegHandler():
 		'Manages What Scans are run' 
 		if self.PerScan: self.RegScan()
 
-		elif self.MRU_Scan:
-			print("Not Implemented Yet")
+		elif self.MRU_Scan: self.MRUScan()
+
+
+	def MRUScan():
 
 	def RegScan(self):
 		'Scans Registry Files'
@@ -147,7 +149,7 @@ class RegHandler():
 				self.Results.update({ Location : KeyResults})
 			except Registry.RegistryKeyNotFoundException:
 				if self.Verbose:
-					Notify.Error(f"Key {Location} not found")
+					Notify.Failure(f"Key {Location} not found")
 			except Exception as Exc:
 				Notify.Error(f"Encountered '{Exc}'")
 			
@@ -183,9 +185,9 @@ class RegHandler():
 
 		for key in self.Keys:
 			if key == Prediction:
-				Notify.Success(f"Predicted {key} with {Probability}")
+				Notify.Success(f"Predicted {key} with {Probability} Generic Values")
 			else:
-				Notify.Failure(f"{key} with {self.KeyLikelyhood.get(key)}")
+				Notify.Failure(f"{key} with {self.KeyLikelyhood.get(key)} Generic Values")
 		
 		self.HiveType = Prediction
 
